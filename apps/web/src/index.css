@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+.dark {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-900 dark:text-slate-100;
+  overscroll-behavior-y: none;
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+input,
+select,
+textarea {
+  @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-base outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-800;
+}
+.btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition active:scale-95;
+}
+.btn-primary {
+  @apply bg-indigo-600 text-white hover:bg-indigo-500;
+}
+.btn-ghost {
+  @apply bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700;
+}
+.btn-danger {
+  @apply bg-red-600/10 text-red-600 hover:bg-red-600/20 dark:text-red-400;
+}
