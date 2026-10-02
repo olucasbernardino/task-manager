@@ -8,10 +8,10 @@ Menu names change from time to time. If a button looks slightly different, look 
 
 - [ ] 1. Neon: create the database project (Frankfurt) and copy the connection string
 - [ ] 2. Generate three secrets on your computer
-- [ ] 3. Vercel: import the repo to get your domain
+- [ ] 3. Vercel: import the repo, add the 4 base variables, get a successful deploy and your production domain
 - [ ] 4. Google Cloud: Branding, Audience (publish), Data Access
 - [ ] 5. Google Cloud: create the Web OAuth client with your Vercel domain
-- [ ] 6. Vercel: add environment variables and redeploy
+- [ ] 6. Vercel: add the Google variables and `APP_URL`, redeploy
 - [ ] 7. Open the app and sign in with Google
 - [ ] 8. cron-job.org: create the ping job
 - [ ] 9. Install the app on your phone
@@ -114,9 +114,12 @@ Checks: the three values look different from each other. Then close the Terminal
    - **Framework Preset:** `Other`.
    - **Root Directory:** `./`.
    - Leave **Build and Output Settings** alone. `vercel.json` sets everything, including the Frankfurt function region.
-4. Do not add variables yet if you do not have them all. Click **Deploy**. The first deploy will probably fail because variables are missing. That is expected.
-5. After it finishes (success or failure) open the project and click **Domains** (Settings, Domains). Note the domain, for example `task-manager-abc123.vercel.app`. Your app URL is `https://` plus that domain, with no trailing slash. This is your `APP_URL`.
-   The simplest path is to use this Vercel domain as is.
+4. Click **Deploy**. The first deploy fails with `Error: DATABASE_URL is required`. That is expected: the build creates the database tables and needs the database string.
+5. Open the project, **Settings, Environment Variables**, and add these four (Production only, **Sensitive** on, paste from your password manager):
+   `DATABASE_URL`, `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET`.
+6. Go to **Deployments**, open the latest one, click the three dots, **Redeploy**. This time it should reach **Ready**.
+7. Only after a successful deploy does Vercel create the stable production domain. Open **Settings, Domains** and note it (for example `task-manager-xyz.vercel.app`). Your app URL is `https://` plus that domain, no trailing slash. This is `APP_URL`. The long addresses with random letters shown on a single deployment change with every deploy; never use those.
+8. Check `https://<your-vercel-domain>/api/health`: it should show `{"ok":true}`. If Vercel asks you to log in, open **Settings, Deployment Protection** and make sure the production domain is not protected.
 
 ## 4. Google Cloud: consent screen
 
@@ -166,10 +169,7 @@ If you later change the Vercel domain, edit the client and update the redirect U
 
 | Name | Value |
 |---|---|
-| `DATABASE_URL` | Neon pooled connection string from step 1 |
-| `SESSION_SECRET` | from step 2 |
-| `TOKEN_ENCRYPTION_KEY` | from step 2 |
-| `CRON_SECRET` | from step 2 |
+| (already added in step 3) | `DATABASE_URL`, `SESSION_SECRET`, `TOKEN_ENCRYPTION_KEY`, `CRON_SECRET` |
 | `GOOGLE_CLIENT_ID` | from step 5 |
 | `GOOGLE_CLIENT_SECRET` | from step 5 |
 | `APP_URL` | `https://<your-vercel-domain>` (no trailing slash) |
