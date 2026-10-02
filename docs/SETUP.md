@@ -83,7 +83,9 @@ The region cannot be changed after a project is created. If you created it in th
    - Project dashboard shows region **AWS Europe (Frankfurt)** (not Ohio, not US East).
    - Connect dialog: Connection pooling is ON and the host contains `-pooler` and `eu-central-1`.
    - Only Postgres is enabled under the project's services.
-6. Paste it into a private note (password manager). This is `DATABASE_URL`. Treat it like a password and never paste it into chat or a public place.
+6. **Edit the string before saving it.** Neon may add `&channel_binding=require` at the end. Delete that part (and only that part). The Node database driver we use does not support channel binding, and leaving it can cause connection errors. Keep `?sslmode=require`. The final string looks like:
+   `postgresql://neondb_owner:<password>@ep-xxxx-pooler.c-5.eu-central-1.aws.neon.tech/neondb?sslmode=require`
+7. Paste it into a private note (password manager). This is `DATABASE_URL`. Treat it like a password and never paste it into chat or a public place.
 
 ## 2. Generate three secrets
 
