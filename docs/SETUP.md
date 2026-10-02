@@ -4,26 +4,33 @@ You need four free accounts for Phases 1–2: **Neon**, **Google Cloud**, **Verc
 
 Work through the steps in order; each one produces values you paste into Vercel's environment variables (step 4).
 
+## Checklist (do in this order)
+- [ ] 1. Neon: create project, copy pooled `DATABASE_URL`
+- [ ] 2. Vercel: import repo to get your domain (the first deploy may fail until step 5; that's fine)
+- [ ] 3. Google Cloud: enable Gmail + Calendar APIs, consent screen (Branding, Audience, Data Access), **Publish app**
+- [ ] 4. Google Cloud: Clients, create Web client with your Vercel redirect URI
+- [ ] 5. Vercel: add environment variables, redeploy
+- [ ] 6. Open the app, sign in with Google, accept the "unverified app" warning once
+- [ ] 7. cron-job.org: ping job, test run returns 200
+- [ ] 8. (Phase 5) Telegram bot via @BotFather
+
 ## 1. Neon (database)
-1. Sign up at <https://neon.tech> (GitHub login is fine). Create a project named `task-manager`, region closest to you (e.g. Frankfurt).
-2. On the project dashboard click **Connect**, tick **Connection pooling**, and copy the connection string (the host contains `-pooler`). This is your `DATABASE_URL`.
+1. Sign up at <https://neon.tech>. New project: name `task-manager`, region **AWS Europe (Frankfurt)**.
+2. Services: keep only **Postgres database** on. Leave Object storage, Functions, AI gateway and Neon Auth off.
+3. After creation click **Connect**, tick **Connection pooling**, and copy the connection string (host contains `-pooler`). This is `DATABASE_URL`.
 
-## 2. Google Cloud (login + Gmail/Calendar access)
-1. <https://console.cloud.google.com> → project picker → **New project** → `task-manager`.
-2. **APIs & Services → Library**: enable **Gmail API** and **Google Calendar API**.
-3. **APIs & Services → OAuth consent screen** (Google Auth platform): User type **External**, app name `Task Manager`, your email as support/developer contact.
-   Scopes: add `openid`, `email`, `profile`, `.../auth/gmail.readonly`, `.../auth/gmail.compose`, `.../auth/calendar`.
-   Add yourself as a **test user**, then click **Publish app** (status "In production"). This stops refresh tokens expiring after 7 days. You'll see an "unverified app" warning once at login: **Advanced → Go to Task Manager (unsafe)** — it's your own app.
-4. **Credentials → Create credentials → OAuth client ID** → type **Web application**.
-   Authorized redirect URIs (add both):
-   - `https://<your-vercel-domain>/api/auth/callback`
-   - `http://localhost:5173/api/auth/callback` (local dev)
-   Copy the **Client ID** and **Client secret**.
+## 2. Vercel (hosting)
+1. Sign up at <https://vercel.com> with GitHub (free **Hobby** plan). **Add New, Project**, import `olucasbernardino/task-manager`. Framework preset "Other"; `vercel.json` sets build, output and the Frankfurt region.
+2. Production branch: pick `main` once I merge, or deploy the `claude/confident-hopper-sap2o3` branch for the first test.
+3. Note the domain Vercel assigns (e.g. `task-manager-xyz.vercel.app`). You need it for step 3.4.
 
-## 3. Vercel (hosting)
-1. Sign up at <https://vercel.com> with GitHub (choose the free **Hobby** plan).
-2. **Add New → Project** → import `olucasbernardino/task-manager`. Leave framework preset as "Other"; `vercel.json` already sets build/output.
-3. Don't deploy yet — add the environment variables first (step 4). Note the production domain Vercel assigns (e.g. `task-manager-xyz.vercel.app`; you can pick a nicer one under Settings → Domains).
+## 3. Google Cloud (login + Gmail/Calendar access)
+Project `task-manager` is created, Gmail API and Calendar API enabled.
+1. **Google Auth Platform, Branding**: app name `Task Manager`, your email as support and developer contact.
+2. **Audience**: user type **External**. Add `olucasbernardino@gmail.com` as a test user. Then **Publish app** (status "In production"), otherwise refresh tokens expire after 7 days. No Google verification review is needed for personal use.
+3. **Data Access, Add or remove scopes**: `openid`, `email`, `profile`, `https://www.googleapis.com/auth/gmail.readonly`, `https://www.googleapis.com/auth/gmail.compose`, `https://www.googleapis.com/auth/calendar`. Save.
+4. **Clients, Create client**: type **Web application**, name `task-manager-web`. Authorized redirect URI: `https://<your-vercel-domain>/api/auth/callback`. Copy the **Client ID** and **Client secret** (the secret is shown once; download the JSON as a backup).
+   Do not use the old "Credentials, Create credentials" wizard.
 
 ## 4. Environment variables (Vercel → Settings → Environment Variables, **Production**)
 | Name | Value |
@@ -39,7 +46,7 @@ Work through the steps in order; each one produces values you paste into Vercel'
 Do **not** set `ENABLE_DEV_LOGIN` in production (it is ignored there anyway).
 Then **Deploy**. The build runs database migrations automatically (`npm run vercel-build`).
 
-## 5. cron-job.org (scheduler)
+## 7. cron-job.org (scheduler)
 1. Sign up at <https://cron-job.org> (free).
 2. **Create cronjob** → URL `https://<your-vercel-domain>/api/cron/ping`, schedule every 15 minutes.
 3. Under **Advanced → Headers** add `Authorization` = `Bearer <CRON_SECRET>`.
