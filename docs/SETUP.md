@@ -21,6 +21,43 @@ Why this order: Google needs your Vercel domain for the redirect address, and Ve
 
 ---
 
+## Security first: read this before creating any secret
+
+### What each secret does, and what happens if it leaks
+
+| Secret | What it is for | If it leaks | How to replace it |
+|---|---|---|---|
+| `DATABASE_URL` | Lets the server connect to your Neon database (tasks, projects, settings, and your encrypted Google tokens). | Anyone can read and delete all your data. | Neon: project, **Branches**, your branch, **Roles**, reset the role password. Copy the new string into Vercel and redeploy. |
+| `SESSION_SECRET` | Signs the login cookie so the server knows it was issued by your app. | Someone could forge a login cookie and enter as you. | Generate a new value, update it in Vercel, redeploy. Everyone (you) is logged out once. |
+| `TOKEN_ENCRYPTION_KEY` | Encrypts your Google access and refresh tokens inside the database (AES-256). | Together with a database leak, an attacker could decrypt the tokens and read your Gmail and Calendar. On its own it is useless. | Generate a new value, update Vercel, redeploy, then sign in with Google again. The old encrypted tokens become unreadable and are simply replaced. Also revoke access at <https://myaccount.google.com/permissions>. |
+| `CRON_SECRET` | The password that cron-job.org sends so only it can trigger the automation endpoints. | Anyone could trigger your automations repeatedly. | New value in Vercel and in the cron-job.org header. |
+| `GOOGLE_CLIENT_ID` | Identifies your app to Google. Not secret by itself. | Harmless alone. | n/a |
+| `GOOGLE_CLIENT_SECRET` | Proves to Google that the request comes from your app. | Someone could impersonate your app, though they still cannot get into your account without your Google password. | Google Auth Platform, Clients, your client: add a new secret, update Vercel, redeploy, disable the old secret. |
+| `APP_URL` | Your public address, used for the login redirect and to block requests from other websites. | Not secret. | n/a |
+| `ALLOWED_EMAIL` | The only Google account allowed to sign in. | Not secret. | n/a |
+
+### Rules that remove most of the risk
+
+1. **Never paste a secret anywhere except Vercel and your password manager.** Not in chat, email, screenshots, GitHub issues, or code. Screenshots of Vercel's variables page must have values hidden.
+2. **Generate the three random secrets yourself** on your own computer (step 2). I never see them, so nobody else can know them.
+3. **Use a password manager** (iCloud Keychain, 1Password, Bitwarden) for the note. Do not keep them in a plain text file on the desktop.
+4. **Use a different value for each secret.** One leak then cannot unlock the others.
+5. **In Vercel, turn on "Sensitive" for every secret** when you add it (a toggle in the add-variable form). Sensitive values can never be viewed again after saving, only replaced.
+6. **Set variables for Production only.** Do not tick Preview or Development. Preview deployments of other branches would otherwise run with your real database and keys.
+7. **Turn on two-step verification** for GitHub, Vercel, Neon and Google. These four accounts hold everything.
+8. **Keep the GitHub repo private**, or at least never commit `.env`. The repo ignores `.env` files already, and `.env.example` contains only empty placeholders.
+9. **Never enable `ENABLE_DEV_LOGIN` on Vercel.** It is a local-only shortcut and the code ignores it in production anyway.
+10. **Keep Google scopes as they are.** The app can read mail, create drafts and edit your calendar, but it cannot send email. If you ever see a scope with `gmail.send` or `mail.google.com`, something is wrong.
+11. **If you suspect a leak**, rotate that secret immediately using the table above. Rotating is always safe and takes a few minutes.
+
+### What the app itself already does for safety
+- Only `ALLOWED_EMAIL` can log in, and it is checked on the server after Google confirms the address is verified.
+- The login cookie is signed, `HttpOnly` (scripts cannot read it) and `Secure` (HTTPS only), and expires in 30 days.
+- Google tokens are encrypted in the database. Secrets live only in environment variables.
+- Writes from other websites are rejected, and the cron endpoints answer 401 without the correct secret.
+
+---
+
 ## 1. Neon (database)
 
 The region cannot be changed after a project is created. If you created it in the wrong region, delete it and create a new one (it is empty, so nothing is lost).
@@ -42,11 +79,21 @@ The region cannot be changed after a project is created. If you created it in th
 2. Branch `main`, database `neondb`, role as shown.
 3. Turn **Connection pooling** ON. The host in the string must now contain `-pooler`.
 4. Copy the full string. It starts with `postgresql://` and usually ends with `?sslmode=require`.
-5. Paste it into a private note. This is `DATABASE_URL`. Treat it like a password and never paste it into chat or a public place.
+5. **Verify it is right before moving on** (look at the project, not at me):
+   - Project dashboard shows region **AWS Europe (Frankfurt)** (not Ohio, not US East).
+   - Connect dialog: Connection pooling is ON and the host contains `-pooler` and `eu-central-1`.
+   - Only Postgres is enabled under the project's services.
+6. Paste it into a private note (password manager). This is `DATABASE_URL`. Treat it like a password and never paste it into chat or a public place.
 
 ## 2. Generate three secrets
 
-On your Mac open **Terminal** and run each line. Each prints one value. Copy each into your private note with its name.
+**Why:** these three values are made up by you, not issued by any company. Because you generate them locally, only you know them. If you let someone else pick them, or reuse an old password, an attacker who guesses or finds them gets in. Random values of this length cannot be guessed.
+
+- `SESSION_SECRET` protects your login session.
+- `TOKEN_ENCRYPTION_KEY` protects your stored Google tokens.
+- `CRON_SECRET` protects the automation endpoints.
+
+On your Mac open **Terminal** (Cmd+Space, type Terminal) and run each line one at a time. Each prints one value. Save each in your password manager with its name.
 
 ```bash
 openssl rand -hex 32       # SESSION_SECRET
@@ -54,7 +101,7 @@ openssl rand -base64 32    # TOKEN_ENCRYPTION_KEY
 openssl rand -hex 24       # CRON_SECRET
 ```
 
-Do not reuse one value for two names, and never commit them to the repo.
+Checks: the three values look different from each other. Then close the Terminal window so the values do not stay on screen. Never put them in the repo.
 
 ## 3. Vercel (hosting)
 
@@ -113,7 +160,7 @@ If you later change the Vercel domain, edit the client and update the redirect U
 ## 6. Vercel: environment variables
 
 1. In Vercel open your project, then **Settings, Environment Variables**.
-2. Add each row. Environments: tick **Production** (and Preview if you want).
+2. Add each row. Environments: tick **Production only**. Leave Preview and Development unticked. For every secret row (everything except `APP_URL`, `ALLOWED_EMAIL`, `GOOGLE_CLIENT_ID`) switch **Sensitive** on. Paste directly from the password manager; do not retype.
 
 | Name | Value |
 |---|---|
