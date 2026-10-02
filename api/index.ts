@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FastifyInstance } from "fastify";
+import { ZodError } from "zod";
 import { buildApp } from "../apps/server/src/app";
 import { loadConfig } from "../apps/server/src/config";
 import { createDb } from "../apps/server/src/db/client";
@@ -19,6 +20,16 @@ function getApp() {
 }
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
-  const app = await getApp();
-  app.server.emit("request", req, res);
+  try {
+    const app = await getApp();
+    app.server.emit("request", req, res);
+  } catch (err) {
+    appPromise = undefined; // do not cache a failed start
+    // Full error goes to the Vercel logs; the response only names invalid variables, never values.
+    console.error("startup_failed", err);
+    const invalid = err instanceof ZodError ? [...new Set(err.issues.map((i) => i.path.join(".")))] : undefined;
+    res.statusCode = 500;
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ error: "startup_failed", invalidEnv: invalid }));
+  }
 }
