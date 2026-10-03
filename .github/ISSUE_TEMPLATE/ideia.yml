@@ -1,0 +1,40 @@
+name: Ideia de produto
+description: Registrar uma ideia de produto no backlog (versão rápida; a versão completa fica em docs/produto/ideias)
+title: "[Ideia] "
+labels: ["ideia"]
+body:
+  - type: input
+    id: resumo
+    attributes:
+      label: Em uma frase
+      description: O que é, para quem, e que resultado entrega.
+    validations:
+      required: true
+  - type: textarea
+    id: dor
+    attributes:
+      label: A dor
+      description: Quem sofre, em que situação, com que frequência e quanto custa hoje.
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Como se resolve hoje
+  - type: textarea
+    id: ia
+    attributes:
+      label: Papel da IA
+      description: O que a IA faz que regras simples não fazem?
+  - type: dropdown
+    id: frequencia
+    attributes:
+      label: Frequência da dor
+      options: [Diária, Semanal, Mensal, Rara]
+    validations:
+      required: true
+  - type: textarea
+    id: validacao
+    attributes:
+      label: Como validar em uma semana
+      description: O que fazer, qual o critério de sucesso e qual o de desistência.
